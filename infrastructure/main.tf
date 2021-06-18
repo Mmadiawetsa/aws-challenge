@@ -14,12 +14,12 @@ module "step_1_parallelism" {
           "States": {
             "read": {
                 "Type": "Task",
-                "Resource": "${aws_lambda_function.lambda_function.arn}",
+                "Resource": "arn:aws:lambda:region:account:function:read",
                 "Next": "TransformTheData"
             }
             "write": {
                 "Type": "Task",
-                "Resource": "${aws_lambda_function.lambda_function.arn}",
+                "Resource": "arn:aws:lambda:region:account:function:write",
                 "End": true
             }
           }
