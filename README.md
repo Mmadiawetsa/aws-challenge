@@ -23,6 +23,8 @@ Use the components shown above and create an architecture with your tool of choi
 
 Upload the diagram/picture into the Git repository and indicate where it's saved. Use the given components as far as possible to illustrate your solution.
 
+![AWS-COMPONENTS](/media/githubchallenge.jpg)
+
 ##### Hints
 * Focus on *low cost & high* performance.
 * All the data are stored in S3 buckets.
