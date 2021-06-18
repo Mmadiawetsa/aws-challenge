@@ -7,6 +7,24 @@ module "step_1_parallelism" {
     role_arn   = var.sfn_role_arn
     type       = var.type
 
+    definition = << EOF
+      {
+          "Comment": "Invoke AWS Lambda",
+          "StartAt": "DataMigration",
+          "States": {
+            "read": {
+                "Type": "Task",
+                "Resource": "${aws_lambda_function.lambda_function.arn}",
+                "Next": "TransformTheData"
+            }
+            "write": {
+                "Type": "Task",
+                "Resource": "${aws_lambda_function.lambda_function.arn}",
+                "End": true
+            }
+          }
+      }
+      EOF
     service_integrations = {
 
         s3bucket = {
