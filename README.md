@@ -75,18 +75,19 @@ Use this area to describe your solution as requested in *_Section B_*.
 4. Amazon CloudFormation is used to set up the AWS infrastructure, along with CodeBuild.
 5. CodeBuild has an IAM role with administrator access. This role will be used to access the above AWS services on behalf of the user.
 6. AWS Step Functions will automate our process. it will make use of lambda functions to keep track of all jobs in progress, all jobs executed, and all job status. 
-7. When data first comes into AWS, a lambda function is triggered and this lambda will inform the step function of this new data. The step function will then inform AWS Glue of this new data.
-8. AWS glue will categorize, clean, validate, enrich, and transforms this data inside S3 bucket:raw into usable and reliable data structures that can be stored in S3 Bucket:transformed.
-9. AWS Glue crawler uses AWS Lambda:crawler to continuously look for new data in S3 Bucket:transformed. 
+7. When data first comes into AWS, a lambda function is triggered and this lambda will inform the step function of this new data. The step function will then inform AWS Glue of this new data. 
+8. AWS glue will categorize, clean, validate, enrich, and transforms this data inside S3 bucket:raw into usable and reliable Parquet data structures that can be stored in S3 Bucket:transformed into Parquet. Parquet data structure in S3 Bucket:transformed into Parquet is for efficeintly encoding schemes and supportive flexible compression options.
+9. AWS Glue crawler uses AWS Lambda:crawler to continuously look for new data in S3 Bucket:transformed into Parquet.  
 10. AWS Glue Crawler will create table definitions in the AWS data catalog from the new data. The Data Catalog contains metadata that are used to define ETL jobs and other metadata will be used to transform the data. The data will be transformed from the glue_job.py script.
 11. Amazon DynamoDB will store the schema data from the data catalog.
-12. S3 Bucket:production will store or final data after all transformation steps are complete.
-13. Amazon Athena will query all the data inside S3 Bucket:production
+12. S3 Bucket:Parquet will store or final data after all transformation steps are complete.
+13. Amazon Athena will query all the data inside S3 Bucket:Parquet
 14. The data is now also available for our APIs
-15. When a CI build is complete, Cloudwatch event triggers AWS Lambda to copy logs inside the S3 bucket:logs 
-16. logs can be viewed using Amazon Api-Gateway
-17. Amazon SNS will be used to send CodeBuild status to Data Engineers via email. 
-18. AWS Systems manager will store Github SSH Privatekey, github repo url and the branch name. CI/CD pipelines from Github will be validated using these keys stored in AWS SSM 
+15. Cloudwatch will be used to collect logs activities from all the services that are in the infrastructure. 
+16. When a CI build is complete, Cloudwatch event triggers AWS Lambda to copy logs inside the S3 bucket:logs.
+17. logs can be viewed using Amazon Api-Gateway
+18. Amazon SNS will be used to send CodeBuild status to Data Engineers via email. 
+19. AWS Systems manager will store Github SSH Privatekey, github repo url and the branch name. CI/CD pipelines from Github will be validated using these keys stored in AWS SSM 
 Once the SSH private key, git branch, and git repo are confirmed using the AWS secret manager. 
 
 
