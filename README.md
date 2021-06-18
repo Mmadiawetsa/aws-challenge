@@ -92,7 +92,7 @@ Once the SSH private key, git branch, and git repo are confirmed using the AWS s
 Add info here.
 
 
-    The diagram is in inside the MEDIA folder.
+    The diagram is inside the MEDIA folder.
 
     Filename: githubchallenge.jpg
 
