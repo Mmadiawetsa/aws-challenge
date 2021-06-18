@@ -9,19 +9,19 @@ module "step_1_parallelism" {
 
     service_integrations = {
 
-        dynamodb = {
-            dynamodb = ["arn:aws:dynamodb:region:account:table/write"]
+        s3bucket = {
+            s3bucket = [""arn:aws:s3bucket:region:account:table/write"]
         }
 
         athena_StartQueryExecution_Sync = {
-            athena        = ["arn:aws:athena:region:account:something1:write"]
-            glue          = ["arn:aws:glue:region:account:something2:write"]
-            s3            = true # options: true (use default value from `aws_service_policies`) or provide a list of ARNs
+            athena        = ["arn:aws:athena:region:account:something1:athena_role"]
+            glue          = ["arn:aws:glue:region:account:something2:glue_role"]
+            s3            = true 
             lakeformation = ["arn:aws:lakeformation:region:account:something3:write"]
         }
 
         lambda = {
-            lambda = ["arn:aws:lambda:region:account:function:write", "arn:aws:lambda:region:account:function:write2"]
+            lambda = ["arn:aws:lambda:region:account:function:read", "arn:aws:lambda:region:account:function:write"]
             }
     }
 
