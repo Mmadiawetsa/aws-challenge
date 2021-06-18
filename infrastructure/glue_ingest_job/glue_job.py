@@ -24,13 +24,12 @@ dynamic_frame.write.parquet("file:///parquet")
 
 dynamic_frame_write = spark.read.parquet("file:///parquet")
 
-datasource = glue_context.write_dynamic_frame.from_options(
+glue_context.write_dynamic_frame.from_options(
     frame = dynamic_frame_write,
     connection_type = "s3",
     connection_options = {
         "path": s3_write_path,
         # "partitionKeys": ["column_name"]
-    },
-    transformation_ctx = "datasource"
+    }
 )
 job.commit()
