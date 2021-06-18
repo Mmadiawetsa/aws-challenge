@@ -86,7 +86,7 @@ Use this area to describe your solution as requested in *_Section B_*.
 15. Cloudwatch will be used to collect logs activities from all the services that are in the infrastructure. 
 16. When a CI build is complete, Cloudwatch event triggers AWS Lambda to copy logs inside the S3 bucket:logs.
 17. logs can be viewed using Amazon Api-Gateway
-18. Amazon SNS will be used to send CodeBuild status to Data Engineers via email. 
+18. Amazon SNS will be used to send CodeBuild status to the user via email. Amazon SNS will also be used to approve code pipelines from github by sending an email to the user to either approve or deny the job.
 19. AWS Systems manager will store Github SSH Privatekey, github repo url and the branch name. CI/CD pipelines from Github will be validated using these keys stored in AWS SSM 
 Once the SSH private key, git branch, and git repo are confirmed using the AWS secret manager. 
 
