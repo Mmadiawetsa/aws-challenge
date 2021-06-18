@@ -18,30 +18,19 @@ s3_write_path = "s3://glue-injest-bucket/write"
 
 ########################### Load the dataset #######################
 
-dynamic_frame_read = glue_context.create_dynamic_frame.from_catalog(
-    database = glue_db, table_name = glue_table
-)
+dynamic_frame = spark.read.csv("glue_db", header=True)
 
-dataframe = dynamic_frame_read.toDF()
+dynamic_frame.write.parquet("file:///parquet")
 
-########################## Data Transformation #####################
+dynamic_frame_write = spark.read.parquet("file:///parquet")
 
-ordered_dataframe = ordered_dataframe.orderBy(f.desc("Column_name"))
-
-########################## Load Data ###############################
-
-ordered_dataframe = ordered_dataframe.repartition(1)
-
-dynamic_frame_write = DynamicFrame.fromDF(ordered_dataframe, glue_context, "dynamic_frame_write")
-
-# write back to s3
-glue_context.write_dynamic_frame.from_options(
+datasource = glue_context.write_dynamic_frame.from_options(
     frame = dynamic_frame_write,
     connection_type = "s3",
     connection_options = {
         "path": s3_write_path,
         # "partitionKeys": ["column_name"]
     },
-    format = "csv"
+    transformation_ctx = "datasource"
 )
 job.commit()
