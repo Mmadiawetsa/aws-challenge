@@ -28,7 +28,7 @@ module "step_1_parallelism" {
     service_integrations = {
 
         s3bucket = {
-            s3bucket = [""arn:aws:s3bucket:region:account:table/write"]
+            s3bucket = ["arn:aws:s3bucket:region:account:table/write"]
         }
 
         athena_StartQueryExecution_Sync = {
