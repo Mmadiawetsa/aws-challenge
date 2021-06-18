@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: '2020-11-13'
+AWSTemplateFormatVersion: "2010-09-09" #"2020-11-13"
 Description: "Create CodeBuild project with required IAM/SG/SSM/CW Logs configuration and S3/DynamoDB for Terraform"
 Metadata:
   AWS::CloudFormation::Interface:
@@ -37,23 +37,24 @@ Parameters:
   Environment:
     Description: Environmnet type from dev, int, prod
     Type: String
-    Default: 'dev'
+    Default: "dev"
   VpcID:
     Type: AWS::EC2::VPC::Id
+    Default: vpc-0237ce345435a5a7a
     Description: VPC in which CB project will run
   PrivateSubnetIDs:
     Type: List<AWS::EC2::Subnet::Id>
     Description: List of subnets in which CB will run (only private are supported)
   IAMCodeBuildPoliciesARNs:
     Description: List of IAM policy ARNs to be attached to CodeBuild role (comma separated string, no spaces)
-    Default: 'arn:aws:iam::aws:policy/AdministratorAccess'
+    Default: "arn:aws:iam::aws:policy/AdministratorAccess"
     Type: String
   ConfigRepoURL:
-    Description: (Optional)Full ssh URL to configuration repository (starting with ssh://)
+    Description: (Optional)Full ssh URL to configuration repository (starting with ssh:)
     Type: String
-    Default: 'somerepo.github.com'
+    Default: "somerepo.github.com"
   GitSSHPrivateKey:
-    NoEcho: 'true'
+    NoEcho: "true"
     Description: Private SSH key to access repositories (read-only is sufficient)
     Type: String
   GitBranch:
@@ -67,37 +68,213 @@ Parameters:
   TerraformVersion:
     Description: Terraform version
     Type: String
-    Default: '0.12.24'
+    Default: "0.12.24"
+
+  CodePipelineSource:
+    Description: AWS CodePipeline source provider
+    AllowedValues:
+    Default: "GitHub"
+    Type: String
+  ExpirationInDays:
+    Type: Number
+    Description: Number of days before a build's log page expires.
+    MinValue: 1
+    Default: 90
+  LogLevel:
+    Type: String
+    Description: Log level for Lambda function logging, e.g., ERROR, INFO, DEBUG, etc
+    Default: INFO
+  PipelineEmail:
+    Description: Email for notifying you about the CustomCodeBuild pipeline 
+    Type: String
+    Default: ""
+
+
+
 Resources:
   ####################################
   # PARAMETERS IN SSM PARAMETER STORE:
   ####################################
+  GitSSHPrivateKeyParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: "SSHPrivateKey"
+      Description: Contains the SSHPrivateKey of the CodeCommit repository
+      Type: String
+      Value: !Ref GitSSHPrivateKey
 
+  CodebuildRepoNameParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: "CodebuildRepoURL"
+      Description: Contains the name of the CodeCommit repository
+      Type: String
+      Value: !Ref ConfigRepoURL
+
+  CodebuildBranchNameParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: "GitBranch"
+      Description: Contains the name of the CodeCommit repository branch
+      Type: String
+      Value: !Ref GitBranch
   
   ####################################
   # IAM:
   ####################################
-  
+  CodePipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          Effect: Allow
+          Principal:
+            Service: 
+              - codepipeline.amazonaws.com
+          Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+      - !Ref IAMCodeBuildPoliciesARNs
+      Tags: 
+        - Key: project
+          Value: CodeBuildProject
 
   ####################################
   # VPC resources:
   ####################################
-  
-
+  SSHSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VpcID
+      GroupName: "CodebuildSG"
+      GroupDescription: "SSH security group for CodeBuild"
+      SecurityGroupIngress: 
+      - Ingress
+      Tags: 
+        - Key: project
+          Value: CodeBuildProject
 
   ####################################
   # CloudWatch Logs
   ####################################
-  
+  GetBuildLogs:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: getbuildlogs.handler
+      Runtime: python3.7
+      Tracing: Active
+      Timeout: 20
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref BuildLogs
+      Environment:
+        Variables:
+          LOG_LEVEL: !Ref LogLevel
+          BUILD_LOGS_BUCKET_NAME: !Ref BuildLogs
+          CODEBUILD_PROJECT_NAME: !Ref ProjectName
+          EXPIRATION_IN_DAYS: !Ref ExpirationInDays
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            RestApiId: !Ref BuildLogsApi
+            Path: /buildlogs
+            Method: get
+
+  BuildLogsApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref Environment
+      MethodSettings:
+        - ThrottlingRateLimit: 1
+          ThrottlingBurstLimit: 2
+          ResourcePath: "/*"
+          HttpMethod: "*"
+
+  BuildLogs:
+    Type: AWS::S3::Bucket
+    Properties:
+      LifecycleConfiguration:
+        Rules:
+        - ExpirationInDays: !Ref ExpirationInDays
+          Status: Enabled
 
   ####################################
   # CodeBuild:
   ####################################
-  
+  CodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Ref ProjectName
+      Description: Github code build 
+      Sevice Role: !Ref CodePipelineRole
+      VpcConfig:
+        VpcId: !Ref VpcID
+        Subnets : !Ref PrivateSubnetIDs
+        SecurityGroupIds :
+          - !Ref SSHSecurityGroup
+      Artifacts:
+        Type: no_artifacts
+
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:2.0
+        EnvironmentVariables:
+        - Name: "api-Name"
+          Type: "PLAINTEXT"
+          Value: !Ref ProjectName
+        - Name: TEMPLATE_PREFIX
+          Value: codebuild
+      
+      Source :
+        Type: "NO_SOURCE" 
+        BuildSpec: !Sub |
+          version: 0.2
+          phases:
+            install:
+              commands:
+                echo "Install part"
+            build:
+              commands:
+                echo "Build Part"
+            post_build:
+              commands:
+                - echo "Nothing to do in the post_build for now"
+
+#      Source:
+#        Location: !Ref ConfigRepoURL
+#        Type: !Ref CodePipelineSource
+#      TimeoutInMinutes: 5
+#      Tags:
+#        - Key: project
+#          Value: CodeBuildProject
+
   ####################################
   # Terraform state:
   ####################################
-  
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "TFstateBucket-${AWS::Region}"
+      AccessControl: Private
+      Tags:
+        - Key: project
+          Value: CodeBuildProject
+
+  ####################################
+  # SNS Topic:
+  ####################################
+  PipelineTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: String
+      Subscription:
+      - Endpoint: !Ref PipelineEmail
+        Protocol: email
+      TopicName: !Ref ProjectName
 
 ####################################
 # PARAMETERS IN SSM PARAMETER STORE:

@@ -67,6 +67,32 @@ Please use a private repo just email us when you are done.
 ## Your Solution Starts HERE!!!
 Use this area to describe your solution as requested in *_Section B_*. 
 
+1. During Data Migration, Data will be moved from our local data store to Amazon Simple Storage Service. This data will e migrated using the company's VPN which will be connected to the Amazon VPN Gateway to ensure that our data is safe and secure during the transportation process.
+2. Amazon Kinesis stream will be used to stream our data from the local data store into Amazon S3:raw. 
+3. Lambda functions are used to differentiate our data and in which bucket the data must be stored. 
+4. Amazon CloudFormation is used to set up the AWS infrastructure, along with CodeBuild.
+5. CodeBuild has an IAM role with administrator access.
+6. AWS Step Functions will automate our process. it will make use of lambda functions to keep track of all jobs in progress, all jobs executed, and all job status. 
+7. When data first comes into the AWS, a lambda function is triggered and this lambda will inform the step function of this new data. The step function will then inform AWS Glue of this new data.
+8. AWS glue will categorize, clean, validate, enrich, and transforms this data inside S3 bucket:raw into usable and reliable data structures that can be stored in S3 Bucket:transformed.
+9. AWS Glue crawler uses AWS Lambda:crawler to continuously look for new data in S3 Bucket:transformed. 
+10. AWS Glue Crawler will create table definitions in the AWS data catalog from the new data. The Data Catalog contains metadata that are used to define ETL jobs and other metadata will be used to transform the data. The data will be transformed from the glue_job.py script.
+11. Amazon DynamoDB will store the schema data from the data catalog.
+12. S3 Bucket:production will store or final data after all transformation steps are complete.
+13. Amazon Athena will query all the data inside S3 Bucket:production
+14. The data is now also available for our APIs
+15. When a CI build is complete, Cloudwatch event triggers AWS Lambda to copy logs inside the S3 bucket:logs 
+16. logs can be viewed using Amazon Api-Gateway
+17. Amazon SNS will be used to send CodeBuild status to Data Engineers via email. 
+18. AWS Systems manager will store Github SSH Privatekey, github repo url and the branch name. CI/CD pipelines from Github will be validated using these keys stored in AWS SSM 
+Once the SSH private key, git branch, and git repo are confirmed using the AWS secret manager. 
+
 
 ## Additional Comments / Information / Concerns
 Add info here.
+
+
+    The diagram is in inside the MEDIA folder.
+
+    Filename: githubchallenge.jpg
+
